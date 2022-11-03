@@ -13,7 +13,7 @@ using System.Linq;
 
 namespace zkScoreTest.APIs
 {
-    public static class SelectFromSandbox
+    public static class Sandbox
     {
         [FunctionName("Sandbox")]
         public static async Task<IActionResult> Run(
