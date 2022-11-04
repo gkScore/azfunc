@@ -33,12 +33,12 @@ namespace azfunc.APIs
                     case "GET":
                         {
                             log.LogInformation($"zkScore-API: '{method}' method is called.");
-                            var address = req.Query["evaluatee_address"];
-                            if (address.Count != 1)
+                            var id = req.Query["evaluatee_id"];
+                            if (id.Count != 1)
                             {
-                                throw new Exception($"GET requires 'evaluatee_address' as a single parameter.");
+                                throw new Exception($"GET requires 'evaluatee_id' as a single parameter.");
                             }
-                            return GetReputation(address.First());
+                            return GetReputation(id.First());
                         }
                     case "POST":
                         {
@@ -74,18 +74,14 @@ namespace azfunc.APIs
             }
         }
         
-        private static IActionResult GetReputation(string evaluateeAddress)
+        private static IActionResult GetReputation(string id)
         {
-            var record = GetReputationRecord(evaluateeAddress);
-            if (record == null)
-            {
-                // mendou...
-                CreateInitialRecordFor(evaluateeAddress);
-                record = new ReputationsRecord(evaluateeAddress, 0, 0);
-            }
+            var address = UserId.GetAddress(id) ?? throw new Exception($"User registration is not completed.");
+            var record = GetReputationRecord(address) ?? throw new Exception($"Unexpected: User data is not found for id={id}.");
             var data = new
             {
-                evaluatee_address = evaluateeAddress,
+                evaluatee_id = id,
+                evaluatee_address = record.EvaluateeAddress,
                 score = record.ReputationCount == 0 ? 0.0 : record.TotalScore / record.ReputationCount,
                 score_count = record.ReputationCount
             };
@@ -106,19 +102,9 @@ namespace azfunc.APIs
             double totalScore;
             int scoreCount;
             {
-                var record = GetReputationRecord(evaluateeAddress);
-                if (record == null)
-                {
-                    // mendou...
-                    CreateInitialRecordFor(evaluateeAddress);
-                    totalScore = 0;
-                    scoreCount = 0;
-                }
-                else
-                {
-                    totalScore = record.TotalScore;
-                    scoreCount = record.ReputationCount;
-                }
+                var record = GetReputationRecord(evaluateeAddress) ?? throw new Exception("User registration is not compreleted");
+                totalScore = record.TotalScore;
+                scoreCount = record.ReputationCount;
             }
 
             //
@@ -186,17 +172,6 @@ namespace azfunc.APIs
                     (int)tbl.Rows[0][1]
                 );
             }
-        }
-
-        private static void CreateInitialRecordFor(string evaluateeAddress)
-        {
-            using var conn = new SqlConnection(Environment.GetEnvironmentVariable("sqldb_connection"));
-            conn.Open();
-            var query =
-                "insert into reputations (evaluatee_address, total_score, reputation_count) " +
-                $"values ('{evaluateeAddress}', {0}, {0});";
-            using var cmd = new SqlCommand(query, conn);
-            cmd.ExecuteNonQuery();
         }
     }
 }
