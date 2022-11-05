@@ -14,6 +14,7 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Text.Json;
 using System.Linq;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace azfunc.APIs
 {
@@ -67,10 +68,9 @@ namespace azfunc.APIs
             }
             catch (Exception ex)
             {
-                return new BadRequestObjectResult(
-                    "Fail to call zkScore-api.Reputations. " +
-                    $"method: {method}, error: {ex.GetType()},  message: {ex.Message}"
-                );
+                var result = new { error = ex.GetType().FullName, message = ex.Message };
+                var jsonData = JsonConvert.SerializeObject(result);
+                return new BadRequestObjectResult(jsonData);
             }
         }
         
@@ -131,8 +131,9 @@ namespace azfunc.APIs
                 }
             }
 
-            return new OkObjectResult(
-                $"Success to register reputation from '{reviewerAddress}' to '{evaluateeAddress}' with score={score}");
+            var result = new { reviewer_address = reviewerAddress, evaluatee_address = evaluateeAddress, score = score };
+            var jsonData = JsonConvert.SerializeObject(result);
+            return new OkObjectResult(jsonData);
         }
 
         class ReputationsRecord

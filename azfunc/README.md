@@ -50,7 +50,7 @@ none
 ## GET
 command:
 ```bash
-curl -X GET $API_URL/userid/?code=$API_URL -H "Content-Type:application/json" -d '{"wallet_address":"test"}'
+curl -X GET $API_URL/userid/?code=$API_URL&wallet_address=test
 ```
 where  
   * wallet_address: user_idを検索する対象のwallet address

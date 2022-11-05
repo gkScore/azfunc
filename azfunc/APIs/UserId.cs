@@ -33,15 +33,12 @@ namespace azfunc.APIs
                     case "GET":
                         {
                             log.LogInformation($"zkScore-API: '{method}' method is called.");
-                            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-                            var requestData = JsonDocument.Parse(requestBody).RootElement;
-
-                            // toriaezu, address => id is only supported
-                            var walletAddress = !requestData.TryGetProperty("wallet_address", out JsonElement wallet_address_element)
-                                    ? throw new Exception("POST requires 'wallet_address' but is missing.")
-                                    : wallet_address_element.GetString()
-                                        ?? throw new Exception("POST requires 'wallet_address' string but is not a string.");
-                            return GetUserId(walletAddress);
+                            var walletAddress = req.Query["wallet_address"];
+                            if (walletAddress.Count != 1)
+                            {
+                                throw new Exception("wallet_address must be a single parameter.");
+                            }
+                            return GetUserId(walletAddress.First());
                         }
                     case "POST":
                         {
@@ -62,10 +59,9 @@ namespace azfunc.APIs
             }
             catch (Exception ex)
             {
-                return new BadRequestObjectResult(
-                    "Fail to call zkScore-api.UserId. " +
-                    $"method: {method}, error: {ex.GetType()},  message: {ex.Message}"
-                );
+                var result = new { error = ex.GetType().FullName, message = ex.Message };
+                var jsonData = JsonConvert.SerializeObject(result);
+                return new BadRequestObjectResult(jsonData);
             }
         }
 
@@ -74,7 +70,7 @@ namespace azfunc.APIs
             var maybeId = GetId(address);
             if (maybeId == null)
             {
-                return new BadRequestObjectResult($"User resistration is not completed. for address '{address}'");
+                throw new Exception($"User resistration is not completed. for address '{address}'");
             }
             var result = new { user_id = maybeId.Value.ToString(), wallet_address = address };
             var jsonData = JsonConvert.SerializeObject(result);
